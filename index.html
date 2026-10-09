@@ -181,11 +181,13 @@
     var now = Date.now();
     var e = effectiveDate(now);
     var today = Date.UTC(e.y, e.m, e.d);
-    var totalDays = Math.max(0, Math.round((today - START) / DAY_MS));
+    // Inclusive count: 18 June 2026 itself is day 1.
+    var end = today + DAY_MS;
+    var totalDays = Math.max(0, Math.round((end - START) / DAY_MS));
 
     var months = 0;
-    while (addMonths(START, months + 1) <= today) months++;
-    var rest = Math.max(0, Math.round((today - addMonths(START, months)) / DAY_MS));
+    while (addMonths(START, months + 1) <= end) months++;
+    var rest = Math.max(0, Math.round((end - addMonths(START, months)) / DAY_MS));
     var weeks = Math.floor(rest / 7);
     var days = rest % 7;
 
