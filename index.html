@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Alcohol free since 18 June 2026.">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+<title>No Drinks</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --text: #1b1b1b;
+    --muted: #6b6862;
+    --line: #dedad2;
+    --card: #ffffff;
+    --accent: #2f6b4f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141414;
+      --text: #f2f0eb;
+      --muted: #9a968e;
+      --line: #2c2b29;
+      --card: #1d1d1c;
+      --accent: #7cc4a0;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.4;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: max(32px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+             max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  }
+  main {
+    width: 100%;
+    max-width: 440px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .label {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .unit {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 8px 14px;
+    text-align: center;
+  }
+  .unit .num {
+    display: block;
+    font-size: clamp(2.4rem, 13vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .unit .name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .total {
+    margin-top: 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .total strong { color: var(--text); font-variant-numeric: tabular-nums; }
+  .money {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .money .amount {
+    display: block;
+    margin-top: 8px;
+    font-size: clamp(2.8rem, 16vw, 4rem);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .money .rate {
+    display: block;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  footer {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="label">Alcohol free since</div>
+    <h1>18 June 2026</h1>
+  </header>
+
+  <section aria-label="Time without alcohol">
+    <div class="grid">
+      <div class="unit"><span class="num" id="months">0</span><span class="name" id="months-name">months</span></div>
+      <div class="unit"><span class="num" id="weeks">0</span><span class="name" id="weeks-name">weeks</span></div>
+      <div class="unit"><span class="num" id="days">0</span><span class="name" id="days-name">days</span></div>
+    </div>
+    <p class="total"><strong id="total-days">0</strong> days in total</p>
+  </section>
+
+  <section class="money" aria-label="Money saved">
+    <div class="label">Money saved</div>
+    <span class="amount" id="saved">£0</span>
+    <span class="rate">£96 per week · £13 per day</span>
+  </section>
+
+  <footer>Updated <span id="updated"></span> · refreshes daily at 00:01 UTC</footer>
+</main>
+
+<script>
+(function () {
+  // Start date (UTC). Each new day is counted from 00:01 UTC.
+  var START = Date.UTC(2026, 5, 18); // 18 June 2026
+  var DAY_MS = 86400000;
+  var ROLLOVER_MS = 60000;           // 00:01 UTC
+  var PER_WEEK = 96;
+  var PER_DAY = 13;
+
+  function effectiveDate(now) {
+    // Before 00:01 UTC we still count the previous day.
+    var d = new Date(now - ROLLOVER_MS);
+    return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() };
+  }
+
+  function daysInMonth(y, m) {
+    return new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  }
+
+  // Add whole calendar months, clamping to month end (e.g. 31 Jan + 1 = 28/29 Feb).
+  function addMonths(ts, n) {
+    var s = new Date(ts);
+    var y = s.getUTCFullYear(), m = s.getUTCMonth() + n;
+    y += Math.floor(m / 12);
+    m = ((m % 12) + 12) % 12;
+    return Date.UTC(y, m, Math.min(s.getUTCDate(), daysInMonth(y, m)));
+  }
+
+  function plural(n, word) {
+    return n === 1 ? word : word + "s";
+  }
+
+  function render() {
+    var now = Date.now();
+    var e = effectiveDate(now);
+    var today = Date.UTC(e.y, e.m, e.d);
+    var totalDays = Math.max(0, Math.round((today - START) / DAY_MS));
+
+    var months = 0;
+    while (addMonths(START, months + 1) <= today) months++;
+    var rest = Math.max(0, Math.round((today - addMonths(START, months)) / DAY_MS));
+    var weeks = Math.floor(rest / 7);
+    var days = rest % 7;
+
+    var saved = Math.floor(totalDays / 7) * PER_WEEK + (totalDays % 7) * PER_DAY;
+
+    document.getElementById("months").textContent = months;
+    document.getElementById("weeks").textContent = weeks;
+    document.getElementById("days").textContent = days;
+    document.getElementById("months-name").textContent = plural(months, "month");
+    document.getElementById("weeks-name").textContent = plural(weeks, "week");
+    document.getElementById("days-name").textContent = plural(days, "day");
+    document.getElementById("total-days").textContent = totalDays.toLocaleString("en-GB");
+    document.getElementById("saved").textContent = "£" + saved.toLocaleString("en-GB");
+    document.getElementById("updated").textContent = new Date(today).toLocaleDateString("en-GB", {
+      day: "numeric", month: "long", year: "numeric", timeZone: "UTC"
+    });
+
+    schedule(now);
+  }
+
+  var timer;
+  function schedule(now) {
+    clearTimeout(timer);
+    var n = new Date(now);
+    var next = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()) + ROLLOVER_MS;
+    if (next <= now) next += DAY_MS;
+    timer = setTimeout(render, next - now + 1000);
+  }
+
+  // Phones pause timers in the background, so re-check when the page is shown again.
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) render();
+  });
+  window.addEventListener("pageshow", render);
+
+  render();
+})();
+</script>
+</body>
+</html>
