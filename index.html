@@ -160,19 +160,6 @@
     return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() };
   }
 
-  function daysInMonth(y, m) {
-    return new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
-  }
-
-  // Add whole calendar months, clamping to month end (e.g. 31 Jan + 1 = 28/29 Feb).
-  function addMonths(ts, n) {
-    var s = new Date(ts);
-    var y = s.getUTCFullYear(), m = s.getUTCMonth() + n;
-    y += Math.floor(m / 12);
-    m = ((m % 12) + 12) % 12;
-    return Date.UTC(y, m, Math.min(s.getUTCDate(), daysInMonth(y, m)));
-  }
-
   function plural(n, word) {
     return n === 1 ? word : word + "s";
   }
@@ -185,11 +172,10 @@
     var end = today + DAY_MS;
     var totalDays = Math.max(0, Math.round((end - START) / DAY_MS));
 
-    var months = 0;
-    while (addMonths(START, months + 1) <= end) months++;
-    var rest = Math.max(0, Math.round((end - addMonths(START, months)) / DAY_MS));
-    var weeks = Math.floor(rest / 7);
-    var days = rest % 7;
+    // A month is counted as 4 weeks (28 days).
+    var months = Math.floor(totalDays / 28);
+    var weeks = Math.floor((totalDays % 28) / 7);
+    var days = totalDays % 7;
 
     var saved = Math.floor(totalDays / 7) * PER_WEEK + (totalDays % 7) * PER_DAY;
 
